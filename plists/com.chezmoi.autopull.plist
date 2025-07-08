@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.chezmoi.autopull</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/mishal/scripts/chezmoi-pull.sh</string>
+    </array>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>StartInterval</key>
+    <integer>300</integer>
+    
+    <key>StandardOutPath</key>
+    <string>/Users/mishal/Library/Logs/chezmoi/autopull.out</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/mishal/Library/Logs/chezmoi/autopull.err</string>
+    
+    <key>WorkingDirectory</key>
+    <string>/Users/mishal/.local/share/chezmoi</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/mishal</string>
+    </dict>
+    
+    <key>ProcessType</key>
+    <string>Background</string>
+    
+    <key>LowPriorityIO</key>
+    <true/>
+    
+    <key>Nice</key>
+    <integer>10</integer>
+</dict>
+</plist>
