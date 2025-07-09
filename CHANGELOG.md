@@ -7,9 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2025-07-08
+## [0.0.1] - 2025-07-08 (Beta)
 
 ### Added
+- **Beta release** - Initial beta version for early adopters
 - Initial release of chezmoi auto-sync
 - Real-time file watching with fswatch for automatic push
 - Periodic pull every 5 minutes from remote repository
@@ -55,5 +56,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fswatch (auto-installed if missing)
 - SSH keys configured for GitHub (recommended)
 
-[Unreleased]: https://github.com/mishaal79/chezmoi-sync/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/mishaal79/chezmoi-sync/releases/tag/v1.0.0
+[Unreleased]: https://github.com/mishaal79/chezmoi-sync/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/mishaal79/chezmoi-sync/releases/tag/v0.0.1
