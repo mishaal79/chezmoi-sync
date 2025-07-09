@@ -13,12 +13,14 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-GITHUB_REPO="https://raw.githubusercontent.com/mishaal79/chezmoi-sync/main"
+GITHUB_REPO="https://api.github.com/repos/mishaal79/chezmoi-sync/releases/latest"
+GITHUB_RAW="https://raw.githubusercontent.com/mishaal79/chezmoi-sync"
 INSTALL_DIR="$HOME/code/private/chezmoi-sync"
 SCRIPTS_DIR="$HOME/scripts"
 PLIST_DIR="$HOME/Library/LaunchAgents"
 LOG_DIR="$HOME/Library/Logs/chezmoi"
 BACKUP_DIR="$HOME/.local/share/chezmoi-backups"
+VERSION_FILE="$INSTALL_DIR/VERSION"
 
 # Output functions
 print_red() { echo -e "${RED}$1${NC}"; }
@@ -96,6 +98,26 @@ create_directories() {
     print_green "Directories created"
 }
 
+# Get latest release info
+get_latest_release() {
+    print_blue "Fetching latest release information..."
+    
+    # Get latest release info from GitHub API
+    RELEASE_INFO=$(curl -fsSL "$GITHUB_REPO" 2>/dev/null || echo "")
+    
+    if [ -n "$RELEASE_INFO" ]; then
+        # Extract version and download URL
+        VERSION=$(echo "$RELEASE_INFO" | grep '"tag_name"' | cut -d'"' -f4 | sed 's/^v//')
+        DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep '"tarball_url"' | cut -d'"' -f4)
+        
+        print_green "Latest version: $VERSION"
+    else
+        print_yellow "Could not fetch release info, using main branch"
+        VERSION="main"
+        DOWNLOAD_URL=""
+    fi
+}
+
 # Download and install files
 install_files() {
     print_blue "Installing files..."
@@ -106,21 +128,38 @@ install_files() {
         cp -r scripts/* "$INSTALL_DIR/scripts/"
         cp -r plists/* "$INSTALL_DIR/plists/"
         cp -r config/* "$INSTALL_DIR/config/"
+        
+        # Copy version file if it exists
+        if [[ -f "./VERSION" ]]; then
+            cp VERSION "$INSTALL_DIR/"
+        fi
     else
+        # Get latest release info
+        get_latest_release
+        
         # Download files from GitHub
         print_blue "Downloading files from GitHub..."
         
+        # Use version-specific branch or main
+        BRANCH="${VERSION:-main}"
+        if [[ "$BRANCH" == "main" ]]; then
+            RAW_URL="$GITHUB_RAW/main"
+        else
+            RAW_URL="$GITHUB_RAW/v$BRANCH"
+        fi
+        
         # Download scripts
-        curl -fsSL "$GITHUB_REPO/scripts/chezmoi-push.sh" -o "$INSTALL_DIR/scripts/chezmoi-push.sh"
-        curl -fsSL "$GITHUB_REPO/scripts/chezmoi-pull.sh" -o "$INSTALL_DIR/scripts/chezmoi-pull.sh"
-        curl -fsSL "$GITHUB_REPO/scripts/chezmoi-resolve.sh" -o "$INSTALL_DIR/scripts/chezmoi-resolve.sh"
+        curl -fsSL "$RAW_URL/scripts/chezmoi-push.sh" -o "$INSTALL_DIR/scripts/chezmoi-push.sh"
+        curl -fsSL "$RAW_URL/scripts/chezmoi-pull.sh" -o "$INSTALL_DIR/scripts/chezmoi-pull.sh"
+        curl -fsSL "$RAW_URL/scripts/chezmoi-resolve.sh" -o "$INSTALL_DIR/scripts/chezmoi-resolve.sh"
         
         # Download plists
-        curl -fsSL "$GITHUB_REPO/plists/com.chezmoi.autopush.plist" -o "$INSTALL_DIR/plists/com.chezmoi.autopush.plist"
-        curl -fsSL "$GITHUB_REPO/plists/com.chezmoi.autopull.plist" -o "$INSTALL_DIR/plists/com.chezmoi.autopull.plist"
+        curl -fsSL "$RAW_URL/plists/com.chezmoi.autopush.plist" -o "$INSTALL_DIR/plists/com.chezmoi.autopush.plist"
+        curl -fsSL "$RAW_URL/plists/com.chezmoi.autopull.plist" -o "$INSTALL_DIR/plists/com.chezmoi.autopull.plist"
         
-        # Download config
-        curl -fsSL "$GITHUB_REPO/config/chezmoi-sync.conf" -o "$INSTALL_DIR/config/chezmoi-sync.conf"
+        # Download config and version
+        curl -fsSL "$RAW_URL/config/chezmoi-sync.conf" -o "$INSTALL_DIR/config/chezmoi-sync.conf"
+        curl -fsSL "$RAW_URL/VERSION" -o "$INSTALL_DIR/VERSION" 2>/dev/null || echo "${VERSION:-main}" > "$INSTALL_DIR/VERSION"
     fi
     
     # Copy scripts to user scripts directory

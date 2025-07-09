@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        brew install fswatch
+        
+    - name: Validate scripts
+      run: |
+        # Check script syntax
+        bash -n scripts/chezmoi-push.sh
+        bash -n scripts/chezmoi-pull.sh
+        bash -n scripts/chezmoi-resolve.sh
+        bash -n install.sh
+        bash -n uninstall.sh
+        
+    - name: Check script permissions
+      run: |
+        test -x scripts/chezmoi-push.sh
+        test -x scripts/chezmoi-pull.sh
+        test -x scripts/chezmoi-resolve.sh
+        test -x install.sh
+        test -x uninstall.sh
+        
+    - name: Validate plist files
+      run: |
+        plutil -lint plists/com.chezmoi.autopush.plist
+        plutil -lint plists/com.chezmoi.autopull.plist
+        
+    - name: Run shellcheck
+      run: |
+        brew install shellcheck
+        shellcheck scripts/*.sh
+        shellcheck install.sh
+        shellcheck uninstall.sh
+        
+    - name: Test installer (dry run)
+      run: |
+        # Create mock chezmoi environment
+        mkdir -p ~/.local/share/chezmoi
+        cd ~/.local/share/chezmoi
+        git init
+        git config user.email "test@example.com"
+        git config user.name "Test User"
+        echo "test" > test.txt
+        git add test.txt
+        git commit -m "Initial commit"
+        
+        # Test installer validation
+        bash -n install.sh
+        
+    - name: Check version consistency
+      run: |
+        if [ -f VERSION ]; then
+          version=$(cat VERSION)
+          echo "Version: $version"
+          # Validate semver format
+          if ! echo "$version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERROR: Version must follow semver format (x.y.z)"
+            exit 1
+          fi
+        fi
+
+  security-scan:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run security scan
+      run: |
+        # Check for potential security issues
+        echo "Checking for hardcoded credentials..."
+        if grep -r "password\|secret\|key" --include="*.sh" . | grep -v "README.md" | grep -v ".git"; then
+          echo "WARNING: Potential credentials found"
+        fi
+        
+        echo "Checking for unsafe commands..."
+        if grep -r "rm -rf \/" --include="*.sh" .; then
+          echo "ERROR: Unsafe rm command found"
+          exit 1
+        fi
+        
+        echo "Checking for eval usage..."
+        if grep -r "eval" --include="*.sh" .; then
+          echo "WARNING: eval usage found - review carefully"
+        fi
+
+  lint:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Lint markdown files
+      run: |
+        brew install markdownlint-cli
+        markdownlint README.md CHANGELOG.md || true
+        
+    - name: Check file structure
+      run: |
+        # Ensure required files exist
+        test -f README.md
+        test -f install.sh
+        test -f uninstall.sh
+        test -d scripts
+        test -d plists
+        test -d config
+        
+        # Check for required scripts
+        test -f scripts/chezmoi-push.sh
+        test -f scripts/chezmoi-pull.sh
+        test -f scripts/chezmoi-resolve.sh
+        
+        # Check for required plist files
+        test -f plists/com.chezmoi.autopush.plist
+        test -f plists/com.chezmoi.autopull.plist

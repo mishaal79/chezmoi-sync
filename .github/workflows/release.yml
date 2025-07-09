@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Validate tag format
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        if ! echo "$TAG" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "ERROR: Tag must follow semver format (vx.y.z)"
+          exit 1
+        fi
+        
+    - name: Validate version consistency
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG#v}
+        
+        # Check if VERSION file matches tag
+        if [ -f VERSION ]; then
+          FILE_VERSION=$(cat VERSION)
+          if [ "$VERSION" != "$FILE_VERSION" ]; then
+            echo "ERROR: VERSION file ($FILE_VERSION) doesn't match tag ($VERSION)"
+            exit 1
+          fi
+        fi
+        
+    - name: Run tests
+      run: |
+        # Install dependencies
+        brew install fswatch shellcheck
+        
+        # Validate scripts
+        bash -n scripts/chezmoi-push.sh
+        bash -n scripts/chezmoi-pull.sh
+        bash -n scripts/chezmoi-resolve.sh
+        bash -n install.sh
+        bash -n uninstall.sh
+        
+        # Run shellcheck
+        shellcheck scripts/*.sh
+        shellcheck install.sh
+        shellcheck uninstall.sh
+        
+        # Validate plist files
+        plutil -lint plists/com.chezmoi.autopush.plist
+        plutil -lint plists/com.chezmoi.autopull.plist
+        
+    - name: Create release archive
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG#v}
+        
+        # Create release directory
+        mkdir -p "chezmoi-sync-$VERSION"
+        
+        # Copy all files except git and github
+        cp -r scripts plists config "chezmoi-sync-$VERSION/"
+        cp install.sh uninstall.sh README.md CHANGELOG.md VERSION "chezmoi-sync-$VERSION/"
+        
+        # Create tarball
+        tar -czf "chezmoi-sync-$VERSION.tar.gz" "chezmoi-sync-$VERSION"
+        
+        # Create zip
+        zip -r "chezmoi-sync-$VERSION.zip" "chezmoi-sync-$VERSION"
+        
+        # Calculate checksums
+        shasum -a 256 "chezmoi-sync-$VERSION.tar.gz" > "chezmoi-sync-$VERSION.tar.gz.sha256"
+        shasum -a 256 "chezmoi-sync-$VERSION.zip" > "chezmoi-sync-$VERSION.zip.sha256"
+        
+    - name: Extract changelog for release
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG#v}
+        
+        # Extract changelog section for this version
+        awk "/^## \[$VERSION\]/{flag=1;next}/^## \[/{flag=0}flag" CHANGELOG.md > release_notes.md
+        
+        # If no specific changelog entry, create generic one
+        if [ ! -s release_notes.md ]; then
+          echo "Release $VERSION" > release_notes.md
+          echo "" >> release_notes.md
+          echo "See CHANGELOG.md for details." >> release_notes.md
+        fi
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body_path: release_notes.md
+        files: |
+          chezmoi-sync-*.tar.gz
+          chezmoi-sync-*.zip
+          chezmoi-sync-*.sha256
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Update latest release info
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG#v}
+        
+        # Create a latest.txt file for version checking
+        echo "$VERSION" > latest.txt
+        
+        # Update README badges (if they exist)
+        if grep -q "version-" README.md; then
+          sed -i.bak "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+/version-$VERSION/g" README.md
+        fi
+        
+    - name: Post-release validation
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG#v}
+        
+        echo "✅ Release $VERSION created successfully"
+        echo "📦 Artifacts:"
+        ls -la chezmoi-sync-$VERSION.*
+        
+        echo "📝 Release notes:"
+        cat release_notes.md
