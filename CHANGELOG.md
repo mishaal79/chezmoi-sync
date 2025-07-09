@@ -7,13 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.1] - 2025-07-09
-
-### Added
-- Release 0.0.1
-
-
-## [0.0.1] - 2025-07-08 (Beta)
+## [0.0.1] - 2025-07-09 (Beta)
 
 ### Added
 - **Beta release** - Initial beta version for early adopters
@@ -32,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic backup system with configurable retention
 - SSH and HTTPS git authentication support
 - Comprehensive documentation and troubleshooting guide
+- CI/CD pipeline with GitHub Actions
+- Semantic versioning with automated releases
+- Version checking and update functionality
+- Release management script for maintainers
 
 ### Security
 - No hardcoded credentials or secrets
@@ -54,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `chezmoi-sync`: Service management and status monitoring
 - `install.sh`: One-line installer with prerequisite checking
 - `uninstall.sh`: Complete removal with optional data retention
+- `release.sh`: Release management script for maintainers
 
 ### Requirements
 - macOS 14+ (tested)
@@ -62,7 +61,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fswatch (auto-installed if missing)
 - SSH keys configured for GitHub (recommended)
 
-[Unreleased]: https://github.com/mishaal79/chezmoi-sync/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/mishaal79/chezmoi-sync/releases/tag/v0.0.1
 [Unreleased]: https://github.com/mishaal79/chezmoi-sync/compare/v0.0.1...HEAD
 [0.0.1]: https://github.com/mishaal79/chezmoi-sync/releases/tag/v0.0.1
