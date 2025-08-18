@@ -1,0 +1,18 @@
+machine_type: "mac-mini"
+capabilities:
+  heavy_development: true
+  parallel_builds: true
+shell_optimization:
+  plugin_loading: "parallel"
+  history_size: 50000
+performance:
+  java_heap: "32g"
+  node_max_memory: "8192"
+development_stack:
+  android_studio: true
+  flutter: true
+  java_sdkman: true
+sync_settings:
+  push_throttle: 2
+  pull_interval: 60
+  max_backups: 20

@@ -1,0 +1,18 @@
+machine_type: "macbook-air"
+capabilities:
+  heavy_development: false
+  parallel_builds: false
+shell_optimization:
+  plugin_loading: "lazy"
+  history_size: 10000
+performance:
+  java_heap: "2g"
+  node_max_memory: "1024"
+development_stack:
+  android_studio: false
+  flutter: false
+  java_sdkman: false
+sync_settings:
+  push_throttle: 5
+  pull_interval: 300
+  max_backups: 5

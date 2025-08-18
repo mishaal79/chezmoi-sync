@@ -1,0 +1,25 @@
+#!/bin/zsh
+# Generated zshrc for {{ .machine_type }}
+# Resource-conscious configuration
+
+# History configuration
+HISTSIZE={{ .shell_optimization.history_size }}
+SAVEHIST=$HISTSIZE
+
+# Conservative Java settings
+export JAVA_OPTS="-Xmx{{ .performance.java_heap }}"
+export NODE_OPTIONS="--max-old-space-size={{ .performance.node_max_memory }}"
+
+{{- if eq .shell_optimization.plugin_loading "lazy" }}
+# Lazy plugin loading for resource conservation
+zinit wait lucid light-mode for zdharma-continuum/fast-syntax-highlighting
+{{- end }}
+
+# chezmoi-sync integration test marker
+export CHEZMOI_SYNC_TEST=true
+export TEST_MACHINE_TYPE="{{ .machine_type }}"
+
+# Sync configuration (conservative)
+export CHEZMOI_SYNC_PUSH_THROTTLE={{ .sync_settings.push_throttle }}
+export CHEZMOI_SYNC_PULL_INTERVAL={{ .sync_settings.pull_interval }}
+export CHEZMOI_SYNC_MAX_BACKUPS={{ .sync_settings.max_backups }}

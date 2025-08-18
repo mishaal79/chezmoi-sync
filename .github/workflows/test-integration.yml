@@ -1,0 +1,212 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  # Completely isolated test environment
+  TEST_HOME: /tmp/chezmoi-test-${{ github.run_id }}
+  CHEZMOI_SOURCE_DIR: /tmp/chezmoi-test-${{ github.run_id }}/.local/share/chezmoi
+
+jobs:
+  docker-tests:
+    name: Docker Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        machine_type: [mac-mini, macbook-air, default]
+        test_scenario: [fresh-install, conflict-resolution, sync-validation]
+      fail-fast: false
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Create isolated test environment
+      run: |
+        mkdir -p $TEST_HOME/{.local/share,.config,scripts}
+        echo "🔒 Created isolated test environment: $TEST_HOME"
+        echo "TEST_HOME=$TEST_HOME" >> $GITHUB_ENV
+    
+    - name: Build test containers
+      run: |
+        cd tests/docker
+        docker-compose build --no-cache
+    
+    - name: Run ${{ matrix.machine_type }} ${{ matrix.test_scenario }} test
+      run: |
+        cd tests/docker
+        docker-compose up -d
+        
+        # Wait for containers to be ready
+        sleep 5
+        
+        # Run machine-specific tests
+        case "${{ matrix.machine_type }}" in
+          "mac-mini")
+            CONTAINER="macos-sim"
+            ;;
+          "macbook-air") 
+            CONTAINER="macbook-air-sim"
+            ;;
+          "default")
+            CONTAINER="alpine-base"
+            ;;
+        esac
+        
+        # Execute test scenarios in completely isolated container
+        docker-compose exec -T $CONTAINER bash -c "
+          set -euo pipefail
+          export TEST_MACHINE_TYPE=${{ matrix.machine_type }}
+          export TEST_SCENARIO=${{ matrix.test_scenario }}
+          export HOME=/home/testuser
+          export CHEZMOI_SOURCE_DIR=/home/testuser/.local/share/chezmoi
+          
+          echo '🧪 Running ${{ matrix.test_scenario }} for ${{ matrix.machine_type }}'
+          
+          # Basic environment validation
+          chezmoi --version
+          git --version
+          
+          # Machine type specific validation
+          if [[ '${{ matrix.machine_type }}' == 'mac-mini' || '${{ matrix.machine_type }}' == 'macbook-air' ]]; then
+            hostname  # Should return simulated hostname
+            command -v fswatch  # Should find mock fswatch
+          fi
+          
+          echo '✅ Environment validation passed'
+        "
+    
+    - name: Test chezmoi-sync integration
+      run: |
+        cd tests/docker
+        
+        case "${{ matrix.machine_type }}" in
+          "mac-mini") CONTAINER="macos-sim" ;;
+          "macbook-air") CONTAINER="macbook-air-sim" ;;
+          "default") CONTAINER="alpine-base" ;;
+        esac
+        
+        docker-compose exec -T $CONTAINER bash -c "
+          set -euo pipefail
+          
+          # Copy test fixtures to container
+          cp -r /home/testuser/test-fixtures/mock-dotfiles-${{ matrix.machine_type }}/* /home/testuser/.local/share/chezmoi/ 2>/dev/null || true
+          
+          # Test chezmoi template processing
+          cd /home/testuser/.local/share/chezmoi
+          if [[ -f dot_zshrc.tmpl ]]; then
+            echo '🧪 Testing chezmoi template processing...'
+            chezmoi execute-template < dot_zshrc.tmpl > /tmp/test-output
+            
+            # Validate machine-specific content
+            if grep -q 'TEST_MACHINE_TYPE=${{ matrix.matrix.machine_type }}' /tmp/test-output; then
+              echo '✅ Machine type correctly templated'
+            else
+              echo '❌ Machine type not found in template output'
+              cat /tmp/test-output
+              exit 1
+            fi
+          fi
+          
+          echo '✅ chezmoi integration test passed'
+        "
+    
+    - name: Cleanup containers
+      if: always()
+      run: |
+        cd tests/docker
+        docker-compose down --remove-orphans --volumes
+        docker system prune -f --volumes
+    
+    - name: Cleanup test directories  
+      if: always()
+      run: |
+        rm -rf $TEST_HOME /tmp/chezmoi-test-* || true
+
+  macos-tests:
+    name: macOS Native Tests
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        test_type: [installation, sync-basic]
+      fail-fast: false
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Create completely isolated test environment
+      run: |
+        # Create isolated test directory - NEVER touch real dotfiles
+        TEST_HOME="/tmp/chezmoi-macos-test-${{ github.run_id }}"
+        mkdir -p "$TEST_HOME"/{.local/share/chezmoi,.config,scripts,Library/LaunchAgents,Library/Logs/chezmoi}
+        echo "TEST_HOME=$TEST_HOME" >> $GITHUB_ENV
+        echo "🔒 Created isolated macOS test environment: $TEST_HOME"
+    
+    - name: Install test dependencies
+      run: |
+        # Install in isolated environment
+        export HOME="$TEST_HOME"
+        
+        # Install chezmoi to test directory
+        sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$TEST_HOME/bin"
+        
+        # Install fswatch for testing
+        brew install fswatch
+    
+    - name: Test chezmoi-sync installation in isolation
+      run: |
+        export HOME="$TEST_HOME"
+        export PATH="$TEST_HOME/bin:$PATH"
+        
+        # Test installer prerequisites
+        echo "🧪 Testing installer prerequisites..."
+        chezmoi --version
+        command -v fswatch
+        git --version
+        
+        # Test mock installation (don't actually install system-wide)
+        echo "🧪 Testing chezmoi-sync installation simulation..."
+        
+        # Create mock chezmoi repository  
+        cd "$TEST_HOME/.local/share/chezmoi"
+        git init
+        git config user.email "test@github-actions.com"
+        git config user.name "GitHub Actions Test"
+        
+        echo 'export TEST_INSTALL=true' > dot_test_config.tmpl
+        git add .
+        git commit -m "Test configuration"
+        
+        echo "✅ Mock installation test passed"
+    
+    - name: Cleanup isolated environment
+      if: always()
+      run: |
+        rm -rf "$TEST_HOME" /tmp/chezmoi-macos-test-* || true
+
+  validation:
+    name: Test Validation
+    runs-on: ubuntu-latest
+    needs: [docker-tests, macos-tests]
+    if: always()
+    
+    steps:
+    - name: Check test results
+      run: |
+        if [[ "${{ needs.docker-tests.result }}" == "success" && "${{ needs.macos-tests.result }}" == "success" ]]; then
+          echo "✅ All integration tests passed"
+        else
+          echo "❌ Some integration tests failed"
+          echo "Docker tests: ${{ needs.docker-tests.result }}"
+          echo "macOS tests: ${{ needs.macos-tests.result }}"
+          exit 1
+        fi

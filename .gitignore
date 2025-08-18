@@ -39,3 +39,100 @@ Temporary Items
 # Backup files
 *.bak
 *.backup
+
+# Docker and containerization
+.docker/
+docker-compose.override.yml
+*.dockerfile
+.env.local
+.env.*.local
+
+# Testing
+tests/output/
+tests/tmp/
+test-output/
+/tmp/chezmoi-test-*
+coverage/
+coverage.xml
+.coverage
+.pytest_cache/
+.tox/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npmrc
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Rust
+target/
+Cargo.lock
+
+# Editor files
+*.swp
+*.swo
+*~
+.vim/
+.netrwhist
+
+# JetBrains IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Test databases and logs
+*.db
+*.sqlite
+*.sqlite3
+test.log
+debug.log
+
+# Build outputs
+dist/
+build/
+out/
+
+# Cache directories
+.cache/
+.npm/
+.yarn/

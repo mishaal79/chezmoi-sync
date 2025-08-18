@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# chezmoi-sync installation script for dotfiles integration
+
+set -euo pipefail
+
+echo "🔄 Installing chezmoi-sync for {{ .machine_type }}..."
+
+# Configuration based on machine type
+{{- if eq .machine_type "mac-mini" }}
+SYNC_CONFIG="aggressive"
+CHEZMOI_SYNC_VERSION="v0.0.1"
+{{- else if eq .machine_type "macbook-air" }}
+SYNC_CONFIG="conservative" 
+CHEZMOI_SYNC_VERSION="v0.0.1"
+{{- else }}
+SYNC_CONFIG="minimal"
+CHEZMOI_SYNC_VERSION="v0.0.1"
+{{- end }}
+
+# GitHub repository
+REPO_URL="https://github.com/mishaal79/chezmoi-sync"
+INSTALL_URL="${REPO_URL}/releases/download/${CHEZMOI_SYNC_VERSION}/install.sh"
+
+# Install chezmoi-sync from GitHub releases
+echo "📦 Downloading chezmoi-sync ${CHEZMOI_SYNC_VERSION}..."
+if command -v curl &>/dev/null; then
+    curl -fsSL "$INSTALL_URL" | bash
+else
+    echo "❌ curl not found - cannot install chezmoi-sync"
+    exit 1
+fi
+
+# Apply machine-specific configuration
+echo "⚙️  Configuring sync for ${SYNC_CONFIG} mode..."
+
+case "$SYNC_CONFIG" in
+    "aggressive")
+        # High-performance machine settings
+        echo "🚀 Configuring for high-performance sync..."
+        # Configure shorter intervals, more backups
+        ;;
+    "conservative")
+        # Resource-conscious settings
+        echo "💡 Configuring for resource-conscious sync..."
+        # Configure longer intervals, fewer backups
+        ;;
+    "minimal")
+        # Minimal overhead settings
+        echo "🔒 Configuring for minimal overhead sync..."
+        # Configure basic sync only
+        ;;
+esac
+
+echo "✅ chezmoi-sync installed and configured for {{ .machine_type }}"

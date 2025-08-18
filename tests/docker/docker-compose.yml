@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Minimal Alpine base for basic testing
+  alpine-base:
+    build:
+      context: .
+      dockerfile: alpine-base.Dockerfile
+    volumes:
+      - ../scripts:/home/testuser/test-scripts:ro
+      - ../fixtures:/home/testuser/test-fixtures:ro
+      - /tmp/chezmoi-test-alpine:/home/testuser/test-output
+    environment:
+      - TEST_MACHINE_TYPE=default
+    working_dir: /home/testuser
+    command: ["sleep", "infinity"]
+
+  # macOS simulation for macOS-specific testing
+  macos-sim:
+    build:
+      context: .
+      dockerfile: macos-sim.Dockerfile
+    volumes:
+      - ../scripts:/home/testuser/test-scripts:ro
+      - ../fixtures:/home/testuser/test-fixtures:ro
+      - /tmp/chezmoi-test-macos:/home/testuser/test-output
+    environment:
+      - TEST_MACHINE_TYPE=mac-mini
+    working_dir: /home/testuser
+    command: ["sleep", "infinity"]
+
+  # MacBook Air simulation
+  macbook-air-sim:
+    build:
+      context: .
+      dockerfile: macos-sim.Dockerfile
+    volumes:
+      - ../scripts:/home/testuser/test-scripts:ro
+      - ../fixtures:/home/testuser/test-fixtures:ro
+      - /tmp/chezmoi-test-macbook:/home/testuser/test-output
+    environment:
+      - TEST_MACHINE_TYPE=macbook-air
+    working_dir: /home/testuser
+    command: ["sleep", "infinity"]
