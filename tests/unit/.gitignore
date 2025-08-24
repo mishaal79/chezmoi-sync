@@ -1,0 +1,2 @@
+# Ignore bats testing framework dependencies (installed by setup_bats.sh)
+bats/

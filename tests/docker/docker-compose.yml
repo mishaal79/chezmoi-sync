@@ -42,3 +42,35 @@ services:
       - TEST_MACHINE_TYPE=macbook-air
     working_dir: /home/testuser
     command: ["sleep", "infinity"]
+
+  # Performance testing container
+  performance-tester:
+    build:
+      context: .
+      dockerfile: performance.Dockerfile
+    volumes:
+      - ../scripts:/home/perfuser/test-scripts:ro
+      - ../integration:/home/perfuser/test-integration:ro
+      - /tmp/chezmoi-perf-results:/home/perfuser/test-results
+    environment:
+      - TEST_MODE=performance
+      - PERFORMANCE_SCENARIO=medium
+    working_dir: /home/perfuser
+    command: ["sleep", "infinity"]
+    
+  # Load testing container (high resource usage)
+  load-tester:
+    build:
+      context: .
+      dockerfile: performance.Dockerfile
+    volumes:
+      - ../scripts:/home/perfuser/test-scripts:ro
+      - ../integration:/home/perfuser/test-integration:ro
+      - /tmp/chezmoi-load-results:/home/perfuser/test-results
+    environment:
+      - TEST_MODE=load_testing
+      - PERFORMANCE_SCENARIO=extreme
+    working_dir: /home/perfuser
+    cpus: "2.0"
+    mem_limit: 1g
+    command: ["sleep", "infinity"]

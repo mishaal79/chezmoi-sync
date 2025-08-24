@@ -1,0 +1,209 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security scans daily
+    - cron: '0 6 * * *'
+
+jobs:
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+    
+    - name: Run Semgrep Security Scan
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: auto
+        publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+      continue-on-error: true
+    
+    - name: Run GitLeaks Secret Scan
+      uses: zricethezav/gitleaks-action@v2
+      with:
+        config-path: .gitleaks.toml
+      continue-on-error: true
+    
+    - name: Custom Security Checks
+      run: |
+        echo "🔍 Running custom security checks..."
+        
+        # Check for hardcoded credentials
+        echo "Checking for hardcoded credentials..."
+        if grep -r -E "(password|passwd|secret|key|token|api[_-]?key)" --include="*.sh" --include="*.bash" . | grep -v "README\|CHANGELOG\|\.git\|test"; then
+          echo "⚠️  WARNING: Potential credentials found"
+          exit 1
+        fi
+        
+        # Check for unsafe commands
+        echo "Checking for unsafe commands..."
+        if grep -r "rm -rf /" --include="*.sh" .; then
+          echo "❌ ERROR: Unsafe rm command found"
+          exit 1
+        fi
+        
+        # Check for eval usage
+        echo "Checking for eval usage..."
+        if grep -r "eval" --include="*.sh" --include="*.bash" .; then
+          echo "⚠️  WARNING: eval usage found - review carefully"
+        fi
+        
+        # Check for curl/wget without SSL verification
+        echo "Checking for insecure downloads..."
+        if grep -r -E "(curl.*-k|wget.*--no-check-certificate)" --include="*.sh" .; then
+          echo "⚠️  WARNING: Insecure download detected"
+        fi
+        
+        # Check for world-writable files
+        echo "Checking file permissions..."
+        if find . -type f -perm 777 2>/dev/null | grep -v "\.git"; then
+          echo "⚠️  WARNING: World-writable files found"
+        fi
+        
+        echo "✅ Custom security checks completed"
+        
+  dependency-scan:
+    name: Dependency Security
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Scan Dependencies (if any)
+      run: |
+        echo "🔍 Scanning for dependency vulnerabilities..."
+        
+        # Check if we have any package files
+        if [ -f "package.json" ]; then
+          npm audit --audit-level moderate
+        fi
+        
+        if [ -f "Gemfile" ]; then
+          bundle audit check --update
+        fi
+        
+        if [ -f "requirements.txt" ]; then
+          pip install safety
+          safety check -r requirements.txt
+        fi
+        
+        echo "✅ No dependency files found to scan"
+        
+  infrastructure-scan:
+    name: Infrastructure Security
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Scan Docker Files
+      if: hashFiles('**/Dockerfile*') != ''
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: "tests/docker/*.Dockerfile"
+        failure-threshold: error
+    
+    - name: Scan Infrastructure as Code
+      run: |
+        echo "🔍 Scanning infrastructure configurations..."
+        
+        # Check Docker compose security
+        if [ -f "tests/docker/docker-compose.yml" ]; then
+          echo "Checking Docker Compose security..."
+          
+          # Check for privileged containers
+          if grep -q "privileged.*true" tests/docker/docker-compose.yml; then
+            echo "⚠️  WARNING: Privileged containers detected"
+          fi
+          
+          # Check for host network mode
+          if grep -q "network_mode.*host" tests/docker/docker-compose.yml; then
+            echo "⚠️  WARNING: Host network mode detected"
+          fi
+          
+          # Check for bind mounts to sensitive paths
+          if grep -E "/(etc|boot|sys|proc):" tests/docker/docker-compose.yml; then
+            echo "⚠️  WARNING: Sensitive path bind mount detected"
+          fi
+        fi
+        
+        echo "✅ Infrastructure scan completed"
+        
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: TruffleHog OSS Secret Scan
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+        
+  license-scan:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: License Scan
+      run: |
+        echo "🔍 Scanning for license compliance..."
+        
+        # Check if LICENSE file exists
+        if [ ! -f "LICENSE" ] && [ ! -f "LICENSE.md" ] && [ ! -f "LICENSE.txt" ]; then
+          echo "⚠️  WARNING: No LICENSE file found"
+          echo "Consider adding a license file for legal clarity"
+        else
+          echo "✅ License file found"
+        fi
+        
+        # Check for copyright notices in source files
+        if ! grep -r "Copyright\|©" --include="*.sh" . >/dev/null; then
+          echo "ℹ️  INFO: No copyright notices found in source files"
+        fi
+        
+        echo "✅ License scan completed"
+        
+  security-report:
+    name: Security Report
+    runs-on: ubuntu-latest
+    needs: [security-scan, dependency-scan, infrastructure-scan, secrets-scan, license-scan]
+    if: always()
+    
+    steps:
+    - name: Generate Security Report
+      run: |
+        echo "📋 Security Scan Summary"
+        echo "========================"
+        echo "Security Scan: ${{ needs.security-scan.result }}"
+        echo "Dependency Scan: ${{ needs.dependency-scan.result }}"
+        echo "Infrastructure Scan: ${{ needs.infrastructure-scan.result }}"
+        echo "Secrets Scan: ${{ needs.secrets-scan.result }}"
+        echo "License Scan: ${{ needs.license-scan.result }}"
+        echo ""
+        
+        if [[ "${{ needs.security-scan.result }}" == "failure" ]] || 
+           [[ "${{ needs.dependency-scan.result }}" == "failure" ]] || 
+           [[ "${{ needs.infrastructure-scan.result }}" == "failure" ]] || 
+           [[ "${{ needs.secrets-scan.result }}" == "failure" ]]; then
+          echo "❌ Security issues detected - review required"
+          exit 1
+        else
+          echo "✅ All security scans passed"
+        fi

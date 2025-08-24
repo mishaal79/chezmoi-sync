@@ -1,0 +1,74 @@
+# GitLeaks configuration for chezmoi-sync
+
+title = "Chezmoi-Sync Secret Detection"
+
+[extend]
+# Use default gitleaks rules
+useDefault = true
+
+[[rules]]
+description = "AWS API Key"
+id = "aws-api-key"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["key", "aws"]
+
+[[rules]]
+description = "AWS Secret Key"
+id = "aws-secret-key"
+regex = '''[0-9a-zA-Z/+]{40}'''
+tags = ["secret", "aws"]
+
+[[rules]]
+description = "GitHub Token"
+id = "github-token"
+regex = '''ghp_[0-9a-zA-Z]{36}'''
+tags = ["key", "github"]
+
+[[rules]]
+description = "GitHub OAuth"
+id = "github-oauth"
+regex = '''gho_[0-9a-zA-Z]{36}'''
+tags = ["key", "github"]
+
+[[rules]]
+description = "SSH Private Key"
+id = "ssh-private-key"
+regex = '''-----BEGIN (?:RSA )?PRIVATE KEY-----'''
+tags = ["key", "ssh"]
+
+[[rules]]
+description = "Generic API Key"
+id = "generic-api-key"
+regex = '''[aA]pi[_-]?[kK]ey['\"\s]*[:=]['\"\s]*[0-9a-zA-Z]{20,}'''
+tags = ["key", "generic"]
+
+[[rules]]
+description = "Generic Secret"
+id = "generic-secret"
+regex = '''[sS]ecret['\"\s]*[:=]['\"\s]*[0-9a-zA-Z]{10,}'''
+tags = ["secret", "generic"]
+
+# Allowlist for test files and documentation
+[allowlist]
+description = "Allowlist for test files"
+files = [
+    '''test.*\.sh''',
+    '''.*test.*\.bats''',
+    '''README\.md''',
+    '''CHANGELOG\.md''',
+    '''\.github/.*''',
+]
+
+# Allow test patterns
+regexes = [
+    '''test@example\.com''',
+    '''Test User''',
+    '''password.*test''',
+    '''api.*test''',
+    '''mock.*key''',
+]
+
+# Allow specific test values
+commits = [
+    # Add specific commit hashes if needed for test data
+]

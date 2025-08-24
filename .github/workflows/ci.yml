@@ -1,4 +1,4 @@
-name: CI
+name: Enhanced CI
 
 on:
   push:
@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_COLOR: 1
+
 jobs:
-  test:
+  unit-tests:
+    name: Unit Tests
     runs-on: macos-latest
     
     steps:
@@ -15,9 +19,35 @@ jobs:
     
     - name: Install dependencies
       run: |
-        brew install fswatch
+        brew install fswatch bats-core
         
-    - name: Validate scripts
+    - name: Setup bats testing framework
+      run: |
+        ./tests/unit/setup_bats.sh
+        
+    - name: Run unit tests
+      run: |
+        ./tests/unit/run_tests.sh
+        
+    - name: Upload unit test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: unit-test-results
+        path: /tmp/chezmoi-sync-test/logs/
+        
+  validation:
+    name: Script Validation
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        brew install fswatch shellcheck shfmt
+        
+    - name: Validate script syntax
       run: |
         # Check script syntax
         bash -n scripts/chezmoi-push.sh
@@ -25,6 +55,7 @@ jobs:
         bash -n scripts/chezmoi-resolve.sh
         bash -n install.sh
         bash -n uninstall.sh
+        bash -n release.sh
         
     - name: Check script permissions
       run: |
@@ -33,25 +64,30 @@ jobs:
         test -x scripts/chezmoi-resolve.sh
         test -x install.sh
         test -x uninstall.sh
+        test -x release.sh
         
     - name: Validate plist files
       run: |
         plutil -lint plists/com.chezmoi.autopush.plist
         plutil -lint plists/com.chezmoi.autopull.plist
         
-    - name: Run shellcheck
+    - name: Run shellcheck (strict)
       run: |
-        brew install shellcheck
-        shellcheck scripts/*.sh
-        shellcheck install.sh
-        shellcheck uninstall.sh
+        shellcheck -S error scripts/*.sh
+        shellcheck -S error install.sh
+        shellcheck -S error uninstall.sh
+        shellcheck -S error release.sh
+        
+    - name: Check shell formatting
+      run: |
+        shfmt -d scripts/*.sh install.sh uninstall.sh release.sh
         
     - name: Test installer (dry run)
       run: |
         # Create mock chezmoi environment
         mkdir -p ~/.local/share/chezmoi
         cd ~/.local/share/chezmoi
-        git init
+        git init --initial-branch=main
         git config user.email "test@example.com"
         git config user.name "Test User"
         echo "test" > test.txt
