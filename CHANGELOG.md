@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Machine-Aware Auto-Sync Architecture**: Revolutionary architecture for conflict-free multi-machine synchronization
+  - Machine-specific branching (auto-sync/mac-mini, auto-sync/macbook-air)
+  - Zero cognitive load system with automatic machine detection
+  - Single-repository workflow replacing dual-repository complexity
+  - CI-based conflict resolution with Claude Code AI assistance
+  - Development mode toggle to prevent conflicts during feature work
+- **OS-Agnostic Machine Detection**: Reliable machine identification independent of chezmoi
+  - Uses macOS scutil LocalHostName for stable, clean identification
+  - Fallback to hostname -s on Linux/other systems
+  - Persistent machine ID file survives hostname changes
+  - Config override support with MACHINE_ID variable
+- **Enhanced Scripts with Machine Intelligence**:
+  - **chezmoi-push.sh**: Complete rewrite with machine detection, auto-sync branches, development mode check, significance filtering, and retry logic
+  - **chezmoi-pull.sh**: Enhanced with pre/post validation, safe pull with conflict detection, rollback capability, and dry-run testing
+  - **chezmoi-sync-dev-mode.sh**: Development mode toggle for disabling auto-sync during feature work, manages LaunchAgents
+  - **chezmoi-sync-status.sh**: Comprehensive status tool with system overview, detailed info, logs viewer, and configuration display
+- **Comprehensive Configuration System**: Machine-aware settings with validation options, retry configuration, and comprehensive defaults
+- **GitHub Actions CI Workflows**:
+  - **auto-sync-handler.yml**: Handles auto-sync/* branch pushes, validates changes, creates PRs, enables auto-merge for safe changes
+  - **conflict-resolver.yml**: AI-assisted conflict resolution with Claude Code subagent, falls back to manual review
+- **Safety and Reliability Features**:
+  - Pre/post validation with chezmoi verify
+  - Smart change detection filtering trivial files
+  - Retry logic with exponential backoff
+  - Comprehensive logging and status reporting
+  - Rollback capability for failed operations
 - **Comprehensive Testing Infrastructure**: Complete isolation testing framework
   - Alpine Linux Docker containers for minimal, fast testing
   - GitHub Actions CI/CD pipeline with matrix testing strategy
@@ -17,6 +43,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Complete isolation from production environment (zero pollution guarantee)
 - **Test Runner**: Automated test execution with Docker and GitHub Actions
 - **Enhanced .gitignore**: Comprehensive coverage for Docker, testing, and development environments
+
+### Changed
+- **Architecture**: Moved from dual-repository model to single-repository workflow with machine-specific branches
+- **Machine Detection**: Replaced chezmoi-dependent detection with OS-native tools for reliability and independence
+- **Branching Strategy**: Each machine now pushes to its own auto-sync/[machine-name] branch instead of main
+- **Conflict Resolution**: Implemented CI-based automated resolution with AI assistance instead of manual intervention
+
+### Technical Details
+- **Machine Detection**: Uses `scutil --get LocalHostName` on macOS, `hostname -s` fallback
+- **Branch Pattern**: `auto-sync/mishals-mac-mini`, `auto-sync/mishals-macbook-air`
+- **Machine ID File**: `~/.config/chezmoi-sync/machine-id` for persistence
+- **Development Mode**: `~/.config/chezmoi-sync/.dev-mode` marker file
+- **Configuration Override**: `MACHINE_ID="custom-name"` in config file
 
 ## [0.0.1] - 2025-07-09
 
