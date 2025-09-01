@@ -40,6 +40,40 @@ notify() {
     fi
 }
 
+# Detect machine type using OS-level tools
+detect_machine_type() {
+    local machine_id_file="$HOME/.config/chezmoi-sync/machine-id"
+    
+    # Config override takes priority
+    [ -n "${MACHINE_ID:-}" ] && echo "$MACHINE_ID" && return
+    
+    # If we have a saved ID, use it (survives hostname changes)
+    if [ -f "$machine_id_file" ]; then
+        cat "$machine_id_file"
+        return
+    fi
+    
+    # Otherwise detect and save it
+    local machine_id=""
+    
+    # macOS: Use LocalHostName (clean, stable)
+    if [ "$(uname)" = "Darwin" ]; then
+        machine_id=$(scutil --get LocalHostName 2>/dev/null || hostname -s)
+    else
+        # Linux/other: Just use hostname
+        machine_id=$(hostname -s)
+    fi
+    
+    # Clean it for git branches
+    machine_id=$(echo "$machine_id" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+    
+    # Save for next time
+    mkdir -p "$(dirname "$machine_id_file")"
+    echo "$machine_id" > "$machine_id_file"
+    
+    echo "$machine_id"
+}
+
 # Acquire lock with timeout
 acquire_lock() {
     local timeout=30

@@ -56,18 +56,38 @@ check_dev_mode() {
     fi
 }
 
-# Detect machine type from chezmoi data
+# Detect machine type using OS-level tools
 detect_machine_type() {
-    local machine_type
+    local machine_id_file="$HOME/.config/chezmoi-sync/machine-id"
     
-    if command -v chezmoi >/dev/null 2>&1; then
-        machine_type=$(chezmoi data --format=json 2>/dev/null | jq -r '.chezmoi.hostname // "unknown"' 2>/dev/null || echo "unknown")
-    else
-        machine_type=$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo "unknown")
+    # Config override takes priority
+    [ -n "${MACHINE_ID:-}" ] && echo "$MACHINE_ID" && return
+    
+    # If we have a saved ID, use it (survives hostname changes)
+    if [ -f "$machine_id_file" ]; then
+        cat "$machine_id_file"
+        return
     fi
     
-    # Clean machine type for branch name (only alphanumeric and hyphens)
-    echo "$machine_type" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g'
+    # Otherwise detect and save it
+    local machine_id=""
+    
+    # macOS: Use LocalHostName (clean, stable)
+    if [ "$(uname)" = "Darwin" ]; then
+        machine_id=$(scutil --get LocalHostName 2>/dev/null || hostname -s)
+    else
+        # Linux/other: Just use hostname
+        machine_id=$(hostname -s)
+    fi
+    
+    # Clean it for git branches
+    machine_id=$(echo "$machine_id" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+    
+    # Save for next time
+    mkdir -p "$(dirname "$machine_id_file")"
+    echo "$machine_id" > "$machine_id_file"
+    
+    echo "$machine_id"
 }
 
 # Check if changes are significant (not just temporary/trivial files)
