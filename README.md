@@ -31,7 +31,19 @@ This project provides a complete auto-sync solution for chezmoi dotfiles on macO
 
 ## Quick Start
 
-### One-Line Installation
+### Installation via Homebrew (Recommended)
+
+```bash
+# Add the tap and install
+brew tap mishaal79/chezmoi-sync
+brew install chezmoi-sync
+
+# Start the services
+brew services start chezmoi-sync       # Push service
+brew services start chezmoi-sync-pull   # Pull service
+```
+
+### Manual Installation
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mishaal79/chezmoi-sync/main/install.sh | bash

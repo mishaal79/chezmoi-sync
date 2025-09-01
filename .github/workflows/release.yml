@@ -166,3 +166,18 @@ jobs:
         
         echo "📝 Release notes:"
         cat release_notes.md
+        
+    - name: Trigger Homebrew formula update
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        
+        echo "🍺 Triggering Homebrew formula update for $TAG"
+        
+        # Trigger the formula update workflow in the tap repository
+        curl -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/mishaal79/homebrew-chezmoi-sync/dispatches \
+          -d "{\"event_type\":\"update-formula\",\"client_payload\":{\"version\":\"$TAG\"}}" || echo "Failed to trigger formula update, continue anyway"
+        
+        echo "✅ Formula update triggered (if tap repository is accessible)"

@@ -136,3 +136,6 @@ out/
 .cache/
 .npm/
 .yarn/
+
+# Private tasks and planning
+tasks/
