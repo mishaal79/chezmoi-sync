@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-09-01
+
 ### Added
+- **Homebrew Distribution**: Professional package management and distribution
+  - Custom Homebrew tap (mishaal79/chezmoi-sync)
+  - Automatic formula updates via GitHub Actions
+  - Dual-service architecture with proper LaunchAgent management
+  - Seamless migration from manual installation
+  - `brew install chezmoi-sync` for easy installation
 - **Machine-Aware Auto-Sync Architecture**: Revolutionary architecture for conflict-free multi-machine synchronization
   - Machine-specific branching (auto-sync/mac-mini, auto-sync/macbook-air)
   - Zero cognitive load system with automatic machine detection
@@ -56,6 +64,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Machine ID File**: `~/.config/chezmoi-sync/machine-id` for persistence
 - **Development Mode**: `~/.config/chezmoi-sync/.dev-mode` marker file
 - **Configuration Override**: `MACHINE_ID="custom-name"` in config file
+
+## [1.0.0] - 2025-08-27
+
+### Added
+- **Machine-Aware Sync System**: Complete rewrite with machine-specific branching
+- **OS-Agnostic Machine Detection**: Uses native OS tools instead of chezmoi data
+- **Development Mode**: Toggle to disable sync during feature development
+- **Comprehensive Status Tool**: Machine info, service status, and logs viewer
 
 ## [0.0.1] - 2025-07-09
 
@@ -117,7 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fswatch (auto-installed if missing)
 - SSH keys configured for GitHub (recommended)
 
-[Unreleased]: https://github.com/mishaal79/chezmoi-sync/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/mishaal79/chezmoi-sync/releases/tag/v0.0.1
-[Unreleased]: https://github.com/mishaal79/chezmoi-sync/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/mishaal79/chezmoi-sync/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/mishaal79/chezmoi-sync/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/mishaal79/chezmoi-sync/compare/v0.0.1...v1.0.0
 [0.0.1]: https://github.com/mishaal79/chezmoi-sync/releases/tag/v0.0.1
