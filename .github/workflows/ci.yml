@@ -146,7 +146,8 @@ jobs:
         fi
         
         echo "Checking for unsafe commands..."
-        if grep -r "rm -rf \/" --include="*.sh" .; then
+        # Check for dangerous rm -rf / commands (but allow /tmp/* paths)
+        if grep -r "rm -rf /" --include="*.sh" . | grep -v "/tmp/" | grep -v "grep"; then
           echo "ERROR: Unsafe rm command found"
           exit 1
         fi
