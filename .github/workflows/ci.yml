@@ -154,8 +154,10 @@ jobs:
           echo "WARNING: eval usage found - review carefully"
         fi
 
-  lint:
+  file-structure:
+    name: Check File Structure
     runs-on: macos-latest
+    needs: lint
     
     steps:
     - uses: actions/checkout@v4
