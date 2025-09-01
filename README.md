@@ -264,13 +264,71 @@ chezmoi-sync uninstall
 ~/code/private/chezmoi-sync/uninstall.sh --force
 ```
 
+## Development Workflow
+
+### Quick Start for Developers
+
+```bash
+# Install dependencies
+make install-deps
+
+# Set up pre-commit hooks (one-time)
+make install-hooks
+
+# Run all checks locally (before pushing)
+make ci-local
+```
+
+### Available Commands
+
+```bash
+make help          # Show all available commands
+make lint          # Run all linters
+make format        # Auto-format all code
+make test          # Run test suite
+make validate      # Run lint + test
+make ci-local      # Simulate full CI pipeline
+```
+
+### Pre-Commit Hooks
+
+This project uses pre-commit hooks to ensure code quality. They run automatically on `git commit`:
+
+- **ShellCheck**: Validates shell scripts
+- **shfmt**: Formats shell scripts (uses tabs)
+- **yamllint**: Validates YAML files
+- **File fixes**: Trailing whitespace, EOF, etc.
+
+If a commit fails due to formatting:
+```bash
+make format        # Fix formatting issues
+git add -u         # Stage the fixes
+git commit         # Retry the commit
+```
+
+### Testing
+
+Run the full test suite:
+```bash
+./test.sh          # Unified test script
+# or
+make test          # Via Makefile
+```
+
+The test suite includes:
+- Shell script syntax validation
+- Code formatting checks
+- Linting (ShellCheck, yamllint)
+- Unit tests (BATS)
+- GitHub Actions workflow validation
+
 ## Contributing
 
 This project is tailored for personal use but contributions are welcome:
 
 1. Fork the repository
 2. Create a feature branch
-3. Test on macOS
+3. Run `make ci-local` to validate changes
 4. Submit a pull request
 
 ## License

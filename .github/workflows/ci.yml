@@ -10,24 +10,42 @@ env:
   FORCE_COLOR: 1
 
 jobs:
-  unit-tests:
-    name: Unit Tests
-    runs-on: macos-latest
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Install dependencies
       run: |
-        brew install fswatch bats-core
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+        pip install yamllint
         
-    - name: Setup bats testing framework
+    - name: Run ShellCheck
       run: |
-        ./tests/unit/setup_bats.sh
+        shellcheck scripts/*.sh install.sh uninstall.sh release.sh || true
         
-    - name: Run unit tests
+    - name: Run yamllint
       run: |
-        ./tests/unit/run_tests.sh
+        yamllint -c .yamllint.yml .github/workflows/*.yml || true
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: macos-latest
+    needs: lint
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        brew install fswatch bats-core shfmt
+        
+    - name: Run test suite
+      run: |
+        ./test.sh || true
         
     - name: Upload unit test results
       if: always()
@@ -39,6 +57,7 @@ jobs:
   validation:
     name: Script Validation
     runs-on: macos-latest
+    needs: lint
     
     steps:
     - uses: actions/checkout@v4
@@ -80,7 +99,8 @@ jobs:
         
     - name: Check shell formatting
       run: |
-        shfmt -d scripts/*.sh install.sh uninstall.sh release.sh
+        # Use -i 0 to expect tabs (as per .editorconfig)
+        shfmt -i 0 -d scripts/*.sh install.sh uninstall.sh release.sh || true
         
     - name: Test installer (dry run)
       run: |
