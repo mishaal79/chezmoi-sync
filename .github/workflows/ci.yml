@@ -2,9 +2,9 @@ name: Enhanced CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   FORCE_COLOR: 1
@@ -13,20 +13,20 @@ jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y shellcheck
         pip install yamllint
-        
+
     - name: Run ShellCheck
       run: |
         shellcheck scripts/*.sh install.sh uninstall.sh release.sh || true
-        
+
     - name: Run yamllint
       run: |
         yamllint -c .yamllint.yml .github/workflows/*.yml || true
@@ -35,21 +35,21 @@ jobs:
     name: Unit Tests
     runs-on: macos-latest
     needs: lint
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install dependencies
       run: |
         brew install fswatch bats-core shfmt
-        
+
     - name: Run test suite
       run: |
         ./test.sh || true
-        
+
     - name: Upload unit test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: unit-test-results
         path: /tmp/chezmoi-sync-test/logs/
@@ -58,10 +58,10 @@ jobs:
     name: Script Validation
     runs-on: macos-latest
     needs: lint
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install dependencies
       run: |
         brew install fswatch shellcheck shfmt
@@ -115,7 +115,7 @@ jobs:
         git commit -m "Initial commit"
         
         # Test installer validation
-        bash -n install.sh
+        bash -n ${{ github.workspace }}/install.sh
         
     - name: Check version consistency
       run: |
@@ -130,11 +130,13 @@ jobs:
         fi
 
   security-scan:
+    name: Security Scan
     runs-on: macos-latest
-    
+    needs: lint
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Run security scan
       run: |
         # Check for potential security issues
@@ -158,10 +160,10 @@ jobs:
     name: Check File Structure
     runs-on: macos-latest
     needs: lint
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Lint markdown files
       run: |
         brew install markdownlint-cli
